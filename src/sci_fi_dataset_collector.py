@@ -3,7 +3,7 @@ import json
 import time
 import requests
 import psutil
-import tmdbsimple as tmdb
+
 import pandas as pd
 import numpy as np
 from typing import List, Dict, Any
@@ -48,21 +48,31 @@ class SciFiDatasetCollector:
         
         try:
             for page in range(1, pages + 1):
-                # Fetch sci-fi movies
-                discover = tmdb.Discover()
-                response = discover.movie(
-                    with_genres='878',  # Science Fiction genre code
-                    page=page,
-                    language='en-US',
-                    sort_by='popularity.desc'
-                )
-                
+                # Fetch sci-fi movies using requests
+                discover_url = f"https://api.themoviedb.org/3/discover/movie?api_key={self.tmdb_api_key}&with_genres=878&page={page}&language=en-US&sort_by=popularity.desc"
+                discover_response = requests.get(discover_url)
+                if discover_response.status_code != 200:
+                    print(f"Failed to fetch page {page}: {discover_response.status_code}")
+                    continue
+                data = discover_response.json()
+
                 # Process each movie
-                for movie in response['results']:
+                for movie in data['results']:
                     # Fetch detailed movie information
-                    movie_details = tmdb.Movies(movie['id'])
-                    info = movie_details.info()
-                    
+                    detail_url = f"https://api.themoviedb.org/3/movie/{movie['id']}?api_key={self.tmdb_api_key}"
+                    detail_response = requests.get(detail_url)
+                    if detail_response.status_code != 200:
+                        print(f"Failed to fetch details for movie {movie['id']}: {detail_response.status_code}")
+                        continue
+                    info = detail_response.json()
+
+                    # Fetch keywords
+                    keyword_url = f"https://api.themoviedb.org/3/movie/{movie['id']}/keywords?api_key={self.tmdb_api_key}"
+                    keyword_response = requests.get(keyword_url)
+                    keywords = []
+                    if keyword_response.status_code == 200:
+                        keywords = [k['name'] for k in keyword_response.json()['keywords']]
+
                     # Extract relevant information
                     sci_fi_movie = {
                         'id': movie['id'],
@@ -75,14 +85,12 @@ class SciFiDatasetCollector:
                         'production_companies': [
                             company['name'] for company in info.get('production_companies', [])
                         ],
-                        'keywords': [
-                            keyword['name'] for keyword in movie_details.keywords()['keywords']
-                        ]
+                        'keywords': keywords
                     }
-                    
+
                     sci_fi_movies.append(sci_fi_movie)
-                
-                # Simulate rate limiting
+
+                # Rate limiting
                 time.sleep(0.5)
         
         except Exception as e:
