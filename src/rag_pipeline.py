@@ -34,7 +34,7 @@ class RAGTransformer:
         self.knowledge_base = []
         self.index = None
     
-    def load_datasets(self, dataset_dir: str = 'datasets'):
+    def load_datasets(self, dataset_dir: str = 'src/datasets'):
         """
         Load datasets from JSON files in the specified directory
         
