@@ -11,6 +11,7 @@ __pycache__/
 
 # Datasets (optional, depending on size)
 datasets/*.json
+src/datasets/*.json
 
 # IDE and OS files
 .DS_Store
